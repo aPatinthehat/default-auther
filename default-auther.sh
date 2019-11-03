@@ -2,7 +2,7 @@
 # Devices: Ricoh/HP printers, APC
 # Script attempts to authenticate to the device IP using the defaul device credentials
 # provide list of ips (one per line) as an arg. Example:
-# ./logmein.sh ricoh_ips.txt
+# ./default-auther.sh ricoh_ips.txt
 
 file=$1
 len=`wc -l $1`
