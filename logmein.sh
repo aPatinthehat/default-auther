@@ -26,6 +26,11 @@ error () {
     exit $2
 } >&2
 
+#COLORS
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
 while getopts ":f:v:h" opt; do
     case $opt in
         h)
@@ -51,40 +56,49 @@ while getopts ":f:v:h" opt; do
     esac
 done
 
-case $vendor in
-    *ricoh*)
+case ${vendor^^} in
+    *RICOH*)
         while read ip; do
             count=$((count+1))
             echo "Sending request to $ip: $count/$len"
-            OUTPUT=`wget --quiet --tries=1 --timeout 3 --post-data "userid=YWRtaW4%3D&password_work=&password=" http://$ip/web/guest/en/websys/webArch/login.cgi --no-check-certificate -O-`
-            if [[ $OUTPUT !=  *'Authentication has failed.'* ]]; then
+            #NEWER MODELS
+            output=`wget --quiet --tries=1 --timeout 3 --post-data "userid=YWRtaW4%3D&password_work=&password=" $ip/web/guest/en/websys/webArch/login.cgi --no-check-certificate -O-`
+            if [[ $output ==  *'logout.cgi'* ]]; then
                 echo $ip >> default-passwords-ricoh.txt
+                echo -e "${RED}Successful login: $ip${NC}"
             else
-                        echo "Auth failed on $ip" >&2
-                    fi
+                #OLDER MODELS
+                output=`wget --quiet --tries=1 --timeout 3 --post-data "userid=YWRtaW4%3D&password_work=&password=" $ip/web/guest/en/websys/webArch/authForm.cgi --no-check-certificate -O-`
+                if [[ $output ==  *'mainFrame.cgi'* ]]; then
+                    echo $ip >> default-passwords-ricoh.txt
+                    echo -e "${RED}Successful login: $ip${NC}"                
+                else
+                    echo "Auth failed on $ip" >&2
+                fi
+            fi
         done<$file;;
 
-    *hp*)
+    *HP*)
         while read ip; do
             count=$((count+1))
             echo "Sending request to $ip: $count/$len"
-            OUTPUT=`wget --quiet --timeout 3 --tries=1 --post-data "agentIdSelect=hp_EmbeddedPin_v1&PinDropDown=AdminItem&PasswordTextBox=&signInOk=Sign+In" https://$ip/hp/device/SignIn/Index --no-check-certificate -O-`
-            if [[ $OUTPUT == *'User: admin'* ]]; then
-                echo "Success: $ip"
+            output=`wget --quiet --timeout 3 --tries=1 --post-data "agentIdSelect=hp_EmbeddedPin_v1&PinDropDown=AdminItem&PasswordTextBox=&signInOk=Sign+In" https://$ip/hp/device/SignIn/Index --no-check-certificate -O-`
+            if [[ $output == *'User: admin'* ]]; then
+                echo -e "${RED}Successful login: $ip${NC}"
                 echo $ip >> default-passwords-hp.txt
             else
                 echo "Failed: $ip" >&2
             fi
         done<$file;;
 
-    *apc*) 
+    *APC*) 
         while read ip; do
             count=$((count+1))
             echo "Sending request to $ip: $count/$len"
             #Old APC devices. Untested on new GUI
-            OUTPUT=`wget --quiet --tries=1 --timeout 3 --post-data "login_username=apc&login_password=apc&submit=Log+On" http://$ip/Forms/login1  --no-check-certificate -O-`
-            if [[ $OUTPUT == *'logout.htm'* ]]; then
-                echo "Success: $ip"
+            output=`wget --quiet --tries=1 --timeout 3 --post-data "login_username=apc&login_password=apc&submit=Log+On" http://$ip/Forms/login1  --no-check-certificate -O-`
+            if [[ $output == *'logout.htm'* ]]; then
+                echo -e "${RED}Successful login: $ip${NC}"
                 echo $ip >> default-passwords-apc.txt
             else
                 echo "Failed: $ip" >&2
